@@ -18,6 +18,7 @@ object TapTempo {
 
     println("TODO: parse command line")
     println(arglist)
+    arglist.foreach(println)
     usages()
     //    println("Appuyer sur la touche entrée en cadence (q pour quitter).")
   }
