@@ -1,4 +1,7 @@
 // TapTempo
+import jline.console.ConsoleReader /* to read keyboard */
+import scala.collection._
+import sys.process._ /* shell cmd execution with ! */
 
 object TapTempo {
   def usages() {
@@ -13,14 +16,46 @@ object TapTempo {
     sys.exit(0)
   }
 
+  def tempo(tfifo: mutable.Buffer[Double]):Double = {
+    var sum = 0.0
+    tfifo.foreach( sum += _)
+    sum/tfifo.length
+  }
+
+
   def main(args: Array[String]) {
     val arglist = args.toList
+    val flength = 5
+    val MIN = 60e9
 
-    println("TODO: parse command line")
+    println("Begin")
+    /* Minimum caracters for completed read */
+    (Seq("sh", "-c", "stty -icanon min 1 < /dev/tty") !)
+    /* Do not print input caracters */
+    (Seq("sh", "-c", "stty -echo < /dev/tty") !)
+
+    var timefifo = mutable.Buffer.fill[Double](flength)(0.0)
+
+    println("Appuyer sur une touche en cadence (q pour quitter).")
+    var c = Console.in.read
+    var i = 0
+    var current_time = System.nanoTime()
+    var old_time = System.nanoTime()
+    do {
+      println("Got " + c)
+      c = Console.in.read
+      timefifo(i) = MIN/(current_time - old_time)
+      old_time = current_time
+      current_time =  System.nanoTime()
+      i = (i + 1) % flength
+      println(tempo(timefifo))
+
+    } while (c != 113)
+
     println(arglist)
     arglist.foreach(println)
     usages()
-    //    println("Appuyer sur la touche entrée en cadence (q pour quitter).")
+   //    println( con.readVirtualKey() )
   }
 
 }
