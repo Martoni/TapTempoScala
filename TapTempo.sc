@@ -3,6 +3,8 @@ import jline.console.ConsoleReader /* to read keyboard */
 import scala.collection._
 import sys.process._ /* shell cmd execution with ! */
 
+val VERSION = "0.1"
+
 object TapTempo {
   def usages() {
     println("-h, --help            affiche ce message d'aide")
@@ -13,7 +15,10 @@ object TapTempo {
     println("-s, --sample-size     changer le nombre d'échantillons nécessaires au calcul du tempo")
     println("                      la valeur par défaut est 5 échantillons")
     println("-v, --version         afficher la version")
-    sys.exit(0)
+  }
+
+  def printversion() {
+    println("TapTempo Scala version " + VERSION)
   }
 
   def tempo(tfifo: mutable.Buffer[Double]):Double = {
@@ -25,10 +30,34 @@ object TapTempo {
 
   def main(args: Array[String]) {
     val arglist = args.toList
+    type OptionMap = Map[Symbol, Any]
     val flength = 5
     val MIN = 60e9
 
-    println("Begin")
+    /****************/
+    /* parsing args */
+    /****************/
+    def nextOption(map : OptionMap, list: List[String]) : OptionMap = {
+      def isSwitch(s : String) = (s(0) == '-')
+
+      list match {
+        case Nil => map
+        case ("-h" | "--help") :: tail => usages(); sys.exit(0)
+        case ("-v" | "--version") :: tail => printversion; sys.exit(0)
+        case ("-p" | "--precision") :: value :: tail =>
+                               nextOption(map ++ Map('precision -> value.toInt), tail)
+        case ("-r" | "--reset-time") :: value :: tail =>
+                               nextOption(map ++ Map('rtime -> value.toInt), tail)
+        case ("-s" | "--sample-size") :: value :: tail =>
+                               nextOption(map ++ Map('ssize -> value.toInt), tail)
+
+        case option :: tail => println("Unknown option " + option)
+                               sys.exit(0)
+      }
+    }
+    val options = nextOption(Map(),arglist)
+    println(options)
+
     /* Minimum caracters for completed read */
     (Seq("sh", "-c", "stty -icanon min 1 < /dev/tty") !)
     /* Do not print input caracters */
@@ -42,20 +71,14 @@ object TapTempo {
     var current_time = System.nanoTime()
     var old_time = System.nanoTime()
     do {
-      println("Got " + c)
       c = Console.in.read
       timefifo(i) = MIN/(current_time - old_time)
       old_time = current_time
       current_time =  System.nanoTime()
       i = (i + 1) % flength
-      println(tempo(timefifo))
+      printf("%.05f\n", tempo(timefifo))
 
     } while (c != 113)
-
-    println(arglist)
-    arglist.foreach(println)
-    usages()
-   //    println( con.readVirtualKey() )
   }
 
 }
