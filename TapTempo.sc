@@ -3,9 +3,10 @@ import jline.console.ConsoleReader /* to read keyboard */
 import scala.collection._
 import sys.process._ /* shell cmd execution with ! */
 
-val VERSION = "0.1"
-val PRECISION = 2
-val RESET_TIME = 10
+val VERSION = "1.0"
+val PRECISION = 0
+val PRECISIONLIST = List("%.00f", "%.01f", "%.02f", "%.03f", "%.04f", "%.05f")
+val RESET_TIME = 5
 val SAMPLE_SIZE = 5
 val SECOND = 1e9
 val MIN = 60*SECOND
@@ -28,7 +29,7 @@ object TapTempo {
 
   def tempo(tfifo: mutable.Buffer[Double]):Double = {
     var sum = 0.0
-    tfifo.foreach( sum += _)
+    tfifo.foreach(sum += _)
     sum/tfifo.length
   }
 
@@ -58,10 +59,9 @@ object TapTempo {
       }
     }
     val options = nextOption(Map(), arglist)
-    println(options)
 
     var precision = options.getOrElse('precision, -1)
-    if(precision == -1)
+    if(precision < 0 || precision > 5)
       precision = PRECISION
     var rtime = options.getOrElse('rtime, -1)
     if(rtime == -1)
@@ -87,8 +87,6 @@ object TapTempo {
       c = Console.in.read
       current_time =  System.nanoTime()
       val tempotime = MIN/(current_time - old_time)
-      println(tempotime)
-      println(60/rtime)
       if(tempotime < 60/rtime){
         fifocount = 0
       }
@@ -100,7 +98,7 @@ object TapTempo {
       i = (i + 1) % ssize
 
       if(fifocount == ssize){
-        printf("Tempo : %.05f\n", tempo(timefifo))
+        printf("Tempo : " + PRECISIONLIST(precision) + "\n", tempo(timefifo))
       } else {
         printf("Tempo : %d/%d\n", fifocount, ssize)
       }
